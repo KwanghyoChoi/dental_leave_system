@@ -315,3 +315,32 @@ class Database:
                 AND strftime('%Y', cl.start_date) = ?
                 ORDER BY cl.start_date
             ''', (employee_id, str(year))).fetchall()]
+    
+    def delete_employee(self, employee_id):
+        """직원 삭제 (관련된 모든 데이터도 함께 삭제)"""
+        with self.get_connection() as conn:
+            cursor = conn.cursor()
+            
+            # 해당 직원의 연차 기록 삭제
+            cursor.execute("DELETE FROM leaves WHERE employee_id = ?", (employee_id,))
+            
+            # 해당 직원의 공통연차 연결 삭제
+            cursor.execute("DELETE FROM common_leave_employees WHERE employee_id = ?", (employee_id,))
+            
+            # 직원 정보 삭제
+            cursor.execute("DELETE FROM employees WHERE id = ?", (employee_id,))
+            
+            return cursor.rowcount > 0
+    
+    def delete_common_leave(self, common_leave_id):
+        """공통 연차 삭제 (관련된 모든 데이터도 함께 삭제)"""
+        with self.get_connection() as conn:
+            cursor = conn.cursor()
+            
+            # 해당 공통연차의 직원 연결 삭제
+            cursor.execute("DELETE FROM common_leave_employees WHERE common_leave_id = ?", (common_leave_id,))
+            
+            # 공통연차 삭제
+            cursor.execute("DELETE FROM common_leaves WHERE id = ?", (common_leave_id,))
+            
+            return cursor.rowcount > 0

@@ -117,7 +117,7 @@ class CommonLeaveView(ctk.CTkFrame):
         self.scrollable_frame.grid_columnconfigure(0, weight=1)
         
         # 테이블 헤더
-        headers = ["연차명", "기간", "실제휴무", "차감일수", "등록자", "적용직원", "메모", "작업"]
+        headers = ["연차명", "기간", "실제휴무", "차감일수", "등록자", "적용직원", "메모", "수정", "삭제"]
         for i, header in enumerate(headers):
             label = ctk.CTkLabel(
                 self.scrollable_frame,
@@ -258,6 +258,18 @@ class CommonLeaveView(ctk.CTkFrame):
                     hover_color="darkgreen"
                 )
                 edit_btn.grid(row=idx, column=7, padx=5, pady=2, sticky="w")
+                
+                # 삭제 버튼
+                delete_btn = ctk.CTkButton(
+                    self.scrollable_frame,
+                    text="삭제",
+                    command=lambda lid=leave['id']: self.delete_common_leave(lid),
+                    width=50,
+                    height=25,
+                    fg_color="red",
+                    hover_color="darkred"
+                )
+                delete_btn.grid(row=idx, column=8, padx=5, pady=2, sticky="w")
                 
         except Exception as e:
             print(f"공통 연차 목록 로드 오류: {e}")
@@ -450,3 +462,46 @@ class CommonLeaveView(ctk.CTkFrame):
             hover_color="darkgray"
         )
         cancel_button.pack(side="left", padx=5)
+    
+    def delete_common_leave(self, common_leave_id):
+        """공통 연차 삭제"""
+        try:
+            # 공통연차 정보 조회
+            common_leave = self.db.get_common_leave_by_id(common_leave_id)
+            if not common_leave:
+                messagebox.showerror("오류", "공통 연차 정보를 찾을 수 없습니다.")
+                return
+            
+            # 적용된 직원 목록 조회
+            employees = self.db.get_common_leave_employees(common_leave_id)
+            emp_names = [emp['name'] for emp in employees]
+            
+            # 확인 대화상자
+            confirm_msg = f"'{common_leave['leave_name']}' 공통 연차를 정말 삭제하시겠습니까?\n\n"
+            confirm_msg += f"기간: {common_leave['start_date']} ~ {common_leave['end_date']}\n"
+            confirm_msg += f"차감 일수: {common_leave['deduct_days']}일\n"
+            if emp_names:
+                confirm_msg += f"적용 직원: {', '.join(emp_names)}\n"
+            confirm_msg += "\n⚠️ 주의: 다음 데이터가 모두 삭제됩니다:\n"
+            confirm_msg += "• 공통연차 정보\n"
+            confirm_msg += "• 직원별 공통연차 적용 기록\n"
+            confirm_msg += "• 관련 통계 데이터\n\n"
+            confirm_msg += "이 작업은 되돌릴 수 없습니다."
+            
+            if not messagebox.askyesno("공통 연차 삭제 확인", confirm_msg):
+                return
+            
+            # 공통연차 삭제 실행
+            success = self.db.delete_common_leave(common_leave_id)
+            
+            if success:
+                messagebox.showinfo("성공", f"'{common_leave['leave_name']}' 공통 연차가 성공적으로 삭제되었습니다.")
+                self.load_common_leaves()
+            else:
+                messagebox.showerror("오류", "공통 연차 삭제에 실패했습니다.")
+                
+        except Exception as e:
+            messagebox.showerror("오류", f"공통 연차 삭제 중 오류가 발생했습니다: {str(e)}")
+            print(f"공통 연차 삭제 오류: {e}")
+            import traceback
+            traceback.print_exc()

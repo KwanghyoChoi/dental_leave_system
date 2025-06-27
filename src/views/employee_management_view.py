@@ -97,13 +97,23 @@ class EmployeeManagementView(ctk.CTkFrame):
         )
         update_button.grid(row=0, column=1, padx=5)
         
+        delete_button = ctk.CTkButton(
+            button_frame,
+            text="직원 삭제",
+            command=self.delete_employee,
+            width=100,
+            fg_color="red",
+            hover_color="darkred"
+        )
+        delete_button.grid(row=0, column=2, padx=5)
+        
         refresh_button = ctk.CTkButton(
             button_frame,
             text="새로고침",
             command=self.load_employees,
             width=100
         )
-        refresh_button.grid(row=0, column=2, padx=5)
+        refresh_button.grid(row=0, column=3, padx=5)
         
         self.selected_employee_id = None
     
@@ -188,6 +198,60 @@ class EmployeeManagementView(ctk.CTkFrame):
             
         except Exception as e:
             messagebox.showerror("오류", f"직원 정보 수정 중 오류가 발생했습니다: {str(e)}")
+    
+    def delete_employee(self):
+        """선택된 직원 삭제"""
+        if not self.selected_employee_id:
+            messagebox.showwarning("선택 오류", "삭제할 직원을 먼저 선택해주세요.")
+            return
+        
+        # 선택된 직원 정보 조회
+        employees = self.db.get_all_employees()
+        selected_employee = None
+        for emp in employees:
+            if emp['id'] == self.selected_employee_id:
+                selected_employee = emp
+                break
+        
+        if not selected_employee:
+            messagebox.showerror("오류", "선택된 직원 정보를 찾을 수 없습니다.")
+            return
+        
+        # 관리자 본인은 삭제할 수 없도록 보호
+        if selected_employee['is_admin']:
+            # 관리자 계정이 몇 개인지 확인
+            admin_count = sum(1 for emp in employees if emp['is_admin'])
+            if admin_count <= 1:
+                messagebox.showerror("삭제 불가", "마지막 관리자 계정은 삭제할 수 없습니다.")
+                return
+        
+        # 확인 대화상자
+        confirm_msg = f"'{selected_employee['name']}' 직원을 정말 삭제하시겠습니까?\n\n"
+        confirm_msg += "⚠️ 주의: 다음 데이터가 모두 삭제됩니다:\n"
+        confirm_msg += "• 직원의 모든 연차 기록\n"
+        confirm_msg += "• 공통연차 적용 기록\n"
+        confirm_msg += "• 기타 관련 데이터\n\n"
+        confirm_msg += "이 작업은 되돌릴 수 없습니다."
+        
+        if not messagebox.askyesno("직원 삭제 확인", confirm_msg):
+            return
+        
+        try:
+            # 직원 삭제 실행
+            success = self.db.delete_employee(self.selected_employee_id)
+            
+            if success:
+                messagebox.showinfo("성공", f"'{selected_employee['name']}' 직원이 성공적으로 삭제되었습니다.")
+                self.clear_form()
+                self.load_employees()
+            else:
+                messagebox.showerror("오류", "직원 삭제에 실패했습니다.")
+                
+        except Exception as e:
+            messagebox.showerror("오류", f"직원 삭제 중 오류가 발생했습니다: {str(e)}")
+            print(f"직원 삭제 오류: {e}")
+            import traceback
+            traceback.print_exc()
     
     def clear_form(self):
         for field_name, entry in self.entries.items():
