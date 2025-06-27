@@ -200,10 +200,29 @@ class AdminLeaveOverview(ctk.CTkFrame):
         self.selected_employee_id = employee['id']
         year = int(self.year_var.get())
         
-        # 정보 라벨 업데이트
+        # 연차 사용량 계산
+        leaves = self.db.get_employee_leaves(employee['id'], year)
+        personal_days = 0
+        for leave in leaves:
+            if leave['leave_type'] == '연차':
+                personal_days += 1
+            elif '반차' in leave['leave_type']:
+                personal_days += 0.5
+        
+        # 공통 연차 계산
+        common_leaves = self.db.get_employee_common_leaves(employee['id'], year)
+        common_days = sum(cl['deduct_days'] for cl in common_leaves)
+        
+        total_used = personal_days + common_days
+        remaining = employee['annual_leave_days'] - total_used
+        usage_rate = (total_used / employee['annual_leave_days'] * 100) if employee['annual_leave_days'] > 0 else 0
+        
+        # 정보 라벨 업데이트 (요약 추가)
         info_text = f"{employee['name']} ({employee['position'] or '직원'}) - "
-        info_text += f"입사일: {employee['hire_date']} | "
-        info_text += f"연차: {employee['annual_leave_days']}일"
+        info_text += f"입사일: {employee['hire_date']}\n"
+        info_text += f"총 {employee['annual_leave_days']}일 중 {total_used:.1f}일 사용 "
+        info_text += f"(개인: {personal_days}일, 공통: {common_days:.1f}일) | "
+        info_text += f"잔여: {remaining:.1f}일 | 사용률: {usage_rate:.1f}%"
         self.detail_info_label.configure(text=info_text)
         
         # 상세 내역 표시
@@ -212,8 +231,6 @@ class AdminLeaveOverview(ctk.CTkFrame):
         
         # 개인 연차 내역
         self.detail_listbox.insert("end", f"=== {year}년 개인 연차 사용 내역 ===\n\n")
-        
-        leaves = self.db.get_employee_leaves(employee['id'], year)
         
         if leaves:
             header = f"{'날짜':<15} {'종류':<15} {'사유':<30}\n"
@@ -230,21 +247,13 @@ class AdminLeaveOverview(ctk.CTkFrame):
         # 공통 연차 내역
         self.detail_listbox.insert("end", f"\n\n=== {year}년 공통 연차 내역 ===\n\n")
         
-        common_leaves = self.db.get_common_leaves()
-        has_common = False
-        
-        for common_leave in common_leaves:
-            leave_employees = self.db.get_common_leave_employees(common_leave['id'])
-            if any(le['id'] == employee['id'] for le in leave_employees):
-                start_date = datetime.strptime(common_leave['start_date'], '%Y-%m-%d')
-                if start_date.year == year:
-                    has_common = True
-                    line = f"{common_leave['leave_name']}: "
-                    line += f"{common_leave['start_date']} ~ {common_leave['end_date']} "
-                    line += f"(차감: {common_leave['deduct_days']}일)\n"
-                    self.detail_listbox.insert("end", line)
-        
-        if not has_common:
+        if common_leaves:
+            for common_leave in common_leaves:
+                line = f"{common_leave['leave_name']}: "
+                line += f"{common_leave['start_date']} ~ {common_leave['end_date']} "
+                line += f"(차감: {common_leave['deduct_days']}일)\n"
+                self.detail_listbox.insert("end", line)
+        else:
             self.detail_listbox.insert("end", "적용된 공통 연차가 없습니다.\n")
         
         # 월별 분석

@@ -263,3 +263,55 @@ class Database:
                 JOIN common_leave_employees cle ON e.id = cle.employee_id
                 WHERE cle.common_leave_id = ?
             ''', (common_leave_id,)).fetchall()]
+    
+    def update_common_leave(self, common_leave_id, leave_name, start_date, end_date, 
+                          actual_days, deduct_days, employee_ids, memo=None):
+        """공통 연차 정보 업데이트"""
+        with self.get_connection() as conn:
+            cursor = conn.cursor()
+            
+            # 공통 연차 정보 업데이트
+            cursor.execute('''
+                UPDATE common_leaves
+                SET leave_name = ?, start_date = ?, end_date = ?, 
+                    actual_days = ?, deduct_days = ?, memo = ?
+                WHERE id = ?
+            ''', (leave_name, start_date, end_date, actual_days, 
+                  deduct_days, memo, common_leave_id))
+            
+            # 기존 직원 연결 삭제
+            cursor.execute('''
+                DELETE FROM common_leave_employees
+                WHERE common_leave_id = ?
+            ''', (common_leave_id,))
+            
+            # 새로운 직원 연결 추가
+            for emp_id in employee_ids:
+                cursor.execute('''
+                    INSERT INTO common_leave_employees (common_leave_id, employee_id)
+                    VALUES (?, ?)
+                ''', (common_leave_id, emp_id))
+            
+            return common_leave_id
+    
+    def get_common_leave_by_id(self, common_leave_id):
+        """특정 공통 연차 정보 조회"""
+        with self.get_connection() as conn:
+            cursor = conn.cursor()
+            return dict(cursor.execute('''
+                SELECT * FROM common_leaves
+                WHERE id = ?
+            ''', (common_leave_id,)).fetchone())
+    
+    def get_employee_common_leaves(self, employee_id, year):
+        """특정 직원에게 적용된 공통 연차 조회"""
+        with self.get_connection() as conn:
+            cursor = conn.cursor()
+            return [dict(row) for row in cursor.execute('''
+                SELECT cl.*
+                FROM common_leaves cl
+                JOIN common_leave_employees cle ON cl.id = cle.common_leave_id
+                WHERE cle.employee_id = ?
+                AND strftime('%Y', cl.start_date) = ?
+                ORDER BY cl.start_date
+            ''', (employee_id, str(year))).fetchall()]

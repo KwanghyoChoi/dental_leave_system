@@ -66,16 +66,31 @@ class LeaveManagementView(ctk.CTkFrame):
         )
         add_button.grid(row=0, column=6, padx=10, pady=10)
         
-        list_frame = ctk.CTkFrame(self)
-        list_frame.grid(row=2, column=0, padx=20, pady=(0, 20), sticky="nsew")
-        list_frame.grid_rowconfigure(0, weight=1)
-        list_frame.grid_columnconfigure(0, weight=1)
+        # 테이블 프레임
+        table_frame = ctk.CTkFrame(self)
+        table_frame.grid(row=2, column=0, padx=20, pady=(0, 10), sticky="nsew")
+        table_frame.grid_rowconfigure(0, weight=1)
+        table_frame.grid_columnconfigure(0, weight=1)
         
-        self.leave_listbox = ctk.CTkTextbox(list_frame, wrap="none", width=800, height=400)
-        self.leave_listbox.grid(row=0, column=0, sticky="nsew", padx=5, pady=5)
+        # 스크롤 가능한 프레임
+        self.scrollable_frame = ctk.CTkScrollableFrame(table_frame, height=350)
+        self.scrollable_frame.grid(row=0, column=0, sticky="nsew", padx=5, pady=5)
         
-        button_frame = ctk.CTkFrame(list_frame)
-        button_frame.grid(row=1, column=0, pady=10)
+        # 테이블 헤더
+        headers = ["날짜", "종류", "사유", "ID"]
+        header_widths = [120, 120, 300, 60]
+        for i, (header, width) in enumerate(zip(headers, header_widths)):
+            label = ctk.CTkLabel(
+                self.scrollable_frame,
+                text=header,
+                font=ctk.CTkFont(weight="bold"),
+                width=width
+            )
+            label.grid(row=0, column=i, padx=5, pady=5, sticky="w")
+        
+        # 버튼 프레임
+        button_frame = ctk.CTkFrame(self)
+        button_frame.grid(row=3, column=0, pady=10)
         
         refresh_button = ctk.CTkButton(
             button_frame,
@@ -87,14 +102,16 @@ class LeaveManagementView(ctk.CTkFrame):
         
         delete_button = ctk.CTkButton(
             button_frame,
-            text="선택 삭제",
-            command=self.delete_selected,
-            width=100
+            text="전체 삭제",
+            command=self.delete_all,
+            width=100,
+            fg_color="red",
+            hover_color="darkred"
         )
         delete_button.pack(side="left", padx=5)
         
         stats_frame = ctk.CTkFrame(self)
-        stats_frame.grid(row=3, column=0, padx=20, pady=(0, 20), sticky="ew")
+        stats_frame.grid(row=4, column=0, padx=20, pady=(0, 20), sticky="ew")
         
         self.stats_label = ctk.CTkLabel(stats_frame, text="")
         self.stats_label.pack(pady=10)
@@ -121,65 +138,131 @@ class LeaveManagementView(ctk.CTkFrame):
                 messagebox.showerror("오류", f"연차 등록 중 오류가 발생했습니다: {str(e)}")
     
     def load_leaves(self):
-        self.leave_listbox.delete("1.0", "end")
+        # 기존 내용 삭제 (헤더 제외)
+        for widget in self.scrollable_frame.winfo_children():
+            if int(widget.grid_info()["row"]) > 0:
+                widget.destroy()
         
-        current_year = datetime.now().year
-        leaves = self.db.get_employee_leaves(self.session.get_user_id(), current_year)
-        
-        header = f"{'날짜':<15} {'종류':<15} {'사유':<30} {'ID':<10}\n"
-        header += "-" * 70 + "\n"
-        self.leave_listbox.insert("1.0", header)
-        
-        total_days = 0
-        leave_counts = {"연차": 0, "반차(오전)": 0, "반차(오후)": 0, "병가": 0, "경조사": 0}
-        
-        for leave in leaves:
-            date_str = leave['leave_date']
-            leave_type = leave['leave_type']
-            reason = leave['reason'] or "-"
-            leave_id = leave['id']
-            
-            line = f"{date_str:<15} {leave_type:<15} {reason:<30} {leave_id:<10}\n"
-            self.leave_listbox.insert("end", line)
-            
-            if leave_type in leave_counts:
-                leave_counts[leave_type] += 1
-                if leave_type == "연차":
-                    total_days += 1
-                elif "반차" in leave_type:
-                    total_days += 0.5
-        
-        employee = self.db.get_employee_by_id(self.session.get_user_id())
-        annual_leave_days = employee['annual_leave_days']
-        remaining_days = annual_leave_days - total_days
-        
-        stats_text = f"{current_year}년 연차 현황: "
-        stats_text += f"총 {annual_leave_days}일 중 {total_days}일 사용, {remaining_days}일 남음\n"
-        stats_text += f"(연차: {leave_counts['연차']}일, 반차: {leave_counts['반차(오전)']+leave_counts['반차(오후)']}회)"
-        
-        self.stats_label.configure(text=stats_text)
-        
-        self.leave_listbox.configure(state="disabled")
-    
-    def delete_selected(self):
         try:
-            cursor_pos = self.leave_listbox.index("insert")
-            line_start = f"{cursor_pos.split('.')[0]}.0"
-            line_end = f"{cursor_pos.split('.')[0]}.end"
+            current_year = datetime.now().year
+            leaves = self.db.get_employee_leaves(self.session.get_user_id(), current_year)
             
-            line_text = self.leave_listbox.get(line_start, line_end)
+            if not leaves:
+                no_data_label = ctk.CTkLabel(
+                    self.scrollable_frame,
+                    text="등록된 연차가 없습니다.",
+                    text_color="gray"
+                )
+                no_data_label.grid(row=1, column=0, columnspan=4, pady=20)
             
-            if line_text and not line_text.startswith("날짜") and not line_text.startswith("-"):
-                parts = line_text.split()
-                if len(parts) >= 4:
-                    leave_id = parts[-1]
-                    
-                    if messagebox.askyesno("삭제 확인", "선택한 연차를 삭제하시겠습니까?"):
-                        self.db.delete_leave(int(leave_id))
-                        messagebox.showinfo("성공", "연차가 삭제되었습니다.")
-                        self.load_leaves()
+            total_days = 0
+            leave_counts = {"연차": 0, "반차(오전)": 0, "반차(오후)": 0, "병가": 0, "경조사": 0}
+            
+            for idx, leave in enumerate(leaves, start=1):
+                # 날짜
+                date_label = ctk.CTkLabel(
+                    self.scrollable_frame,
+                    text=leave['leave_date'],
+                    width=120
+                )
+                date_label.grid(row=idx, column=0, padx=5, pady=2, sticky="w")
+                
+                # 종류
+                type_label = ctk.CTkLabel(
+                    self.scrollable_frame,
+                    text=leave['leave_type'],
+                    width=120
+                )
+                type_label.grid(row=idx, column=1, padx=5, pady=2, sticky="w")
+                
+                # 사유
+                reason_label = ctk.CTkLabel(
+                    self.scrollable_frame,
+                    text=leave['reason'] or "-",
+                    width=300,
+                    anchor="w"
+                )
+                reason_label.grid(row=idx, column=2, padx=5, pady=2, sticky="w")
+                
+                # ID와 삭제 버튼
+                id_frame = ctk.CTkFrame(self.scrollable_frame, fg_color="transparent")
+                id_frame.grid(row=idx, column=3, padx=5, pady=2, sticky="w")
+                
+                id_label = ctk.CTkLabel(
+                    id_frame,
+                    text=str(leave['id']),
+                    width=40
+                )
+                id_label.pack(side="left")
+                
+                delete_btn = ctk.CTkButton(
+                    id_frame,
+                    text="삭제",
+                    command=lambda lid=leave['id']: self.delete_leave(lid),
+                    width=50,
+                    height=25,
+                    fg_color="red",
+                    hover_color="darkred"
+                )
+                delete_btn.pack(side="left", padx=(10, 0))
+                
+                # 통계 계산
+                leave_type = leave['leave_type']
+                if leave_type in leave_counts:
+                    leave_counts[leave_type] += 1
+                    if leave_type == "연차":
+                        total_days += 1
+                    elif "반차" in leave_type:
+                        total_days += 0.5
+            
+            # 공통 연차 정보 추가
+            common_leaves = self.db.get_employee_common_leaves(self.session.get_user_id(), current_year)
+            common_leave_days = 0
+            for cl in common_leaves:
+                common_leave_days += cl['deduct_days']
+            
+            # 통계 업데이트
+            employee = self.db.get_employee_by_id(self.session.get_user_id())
+            annual_leave_days = employee['annual_leave_days']
+            total_used_days = total_days + common_leave_days  # 개인 + 공통 연차
+            remaining_days = annual_leave_days - total_used_days
+            
+            stats_text = f"{current_year}년 연차 현황: "
+            stats_text += f"총 {annual_leave_days}일 중 {total_used_days:.1f}일 사용, {remaining_days:.1f}일 남음\n"
+            stats_text += f"(개인연차: {total_days}일 [연차 {leave_counts['연차']}일, 반차 {leave_counts['반차(오전)']+leave_counts['반차(오후)']}회], "
+            stats_text += f"공통연차: {common_leave_days:.1f}일)"
+            
+            self.stats_label.configure(text=stats_text)
+            
         except Exception as e:
-            messagebox.showerror("오류", "연차를 선택해주세요.")
+            print(f"연차 목록 로드 오류: {e}")
+            error_label = ctk.CTkLabel(
+                self.scrollable_frame,
+                text=f"데이터 로드 중 오류 발생: {str(e)}",
+                text_color="red"
+            )
+            error_label.grid(row=1, column=0, columnspan=4, pady=20)
+    
+    def delete_leave(self, leave_id):
+        if messagebox.askyesno("삭제 확인", "선택한 연차를 삭제하시겠습니까?"):
+            try:
+                self.db.delete_leave(leave_id)
+                messagebox.showinfo("성공", "연차가 삭제되었습니다.")
+                self.load_leaves()
+            except Exception as e:
+                messagebox.showerror("오류", f"연차 삭제 중 오류가 발생했습니다: {str(e)}")
+    
+    def delete_all(self):
+        if messagebox.askyesno("전체 삭제", "정말로 모든 연차를 삭제하시겠습니까?\n이 작업은 되돌릴 수 없습니다."):
+            try:
+                current_year = datetime.now().year
+                leaves = self.db.get_employee_leaves(self.session.get_user_id(), current_year)
+                for leave in leaves:
+                    self.db.delete_leave(leave['id'])
+                messagebox.showinfo("성공", "모든 연차가 삭제되었습니다.")
+                self.load_leaves()
+            except Exception as e:
+                messagebox.showerror("오류", f"연차 삭제 중 오류가 발생했습니다: {str(e)}")
     
     def refresh(self):
         self.load_leaves()
