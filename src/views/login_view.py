@@ -34,6 +34,15 @@ class LoginView(ctk.CTkFrame):
         logo_frame = ctk.CTkFrame(center_frame, fg_color="transparent")
         logo_frame.grid(row=0, column=0, pady=(0, 30))
         
+        # 치과 이름
+        clinic_name = ctk.CTkLabel(
+            logo_frame,
+            text="아너스치과교정과",
+            font=ctk.CTkFont(size=24, weight="bold"),
+            text_color=Theme.COLORS['primary']
+        )
+        clinic_name.pack(pady=(0, 10))
+        
         # 치과 아이콘 (이모지 사용)
         icon_label = ctk.CTkLabel(
             logo_frame,
@@ -84,27 +93,27 @@ class LoginView(ctk.CTkFrame):
         self.username_combo = ctk.CTkComboBox(
             input_frame,
             values=employee_names,
-            width=280,
+            width=330,
             height=40,
             font=Theme.get_font('body'),
             corner_radius=8,
             dropdown_font=Theme.get_font('body')
         )
-        self.username_combo.grid(row=1, column=0, pady=(0, 15))
+        self.username_combo.grid(row=1, column=0, columnspan=2, pady=(0, 15))
         self.username_combo.set("직원을 선택하세요")
         
-        # 새로고침 버튼 (직원 목록 갱신용)
-        refresh_btn = ctk.CTkButton(
-            input_frame,
-            text="🔄",
-            width=40,
-            height=40,
-            font=ctk.CTkFont(size=16),
-            command=self.refresh_employee_list,
-            fg_color=Theme.COLORS['secondary'],
-            hover_color=Theme.COLORS['primary']
-        )
-        refresh_btn.grid(row=1, column=1, padx=(10, 0), pady=(0, 15))
+        # 새로고침 버튼 (직원 목록 갱신용) - 숨김
+        # refresh_btn = ctk.CTkButton(
+        #     input_frame,
+        #     text="🔄",
+        #     width=40,
+        #     height=40,
+        #     font=ctk.CTkFont(size=16),
+        #     command=self.refresh_employee_list,
+        #     fg_color=Theme.COLORS['secondary'],
+        #     hover_color=Theme.COLORS['primary']
+        # )
+        # refresh_btn.grid(row=1, column=1, padx=(10, 0), pady=(0, 15))
         
         # 비밀번호 입력
         password_label = ctk.CTkLabel(
@@ -117,7 +126,7 @@ class LoginView(ctk.CTkFrame):
         
         self.password_entry = ctk.CTkEntry(
             input_frame, 
-            width=280, 
+            width=330, 
             height=40,
             font=Theme.get_font('body'),
             corner_radius=8,
@@ -140,14 +149,7 @@ class LoginView(ctk.CTkFrame):
         )
         login_button.grid(row=4, column=0, columnspan=2, pady=(0, 20))
         
-        # 도움말 텍스트
-        help_label = ctk.CTkLabel(
-            login_frame,
-            text="관리자 계정: 관리자 / admin123",
-            font=Theme.get_font('caption'),
-            text_color=Theme.COLORS['text_secondary']
-        )
-        help_label.grid(row=2, column=0, columnspan=2, pady=(0, 30))
+        # 도움말 텍스트 삭제됨
         
         # 키보드 이벤트
         self.password_entry.bind("<Return>", lambda e: self.login())
