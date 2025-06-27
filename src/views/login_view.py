@@ -36,11 +36,11 @@ class LoginView(ctk.CTkFrame):
         logo_frame = ctk.CTkFrame(center_frame, fg_color="transparent")
         logo_frame.grid(row=0, column=0, pady=(0, 30))
         
-        # 치과 이름
+        # 치과 이름 (더 크고 눈에 띄게)
         clinic_name = ctk.CTkLabel(
             logo_frame,
             text="아너스치과교정과",
-            font=ctk.CTkFont(size=24, weight="bold"),
+            font=ctk.CTkFont(size=32, weight="bold"),
             text_color=Theme.COLORS['primary']
         )
         clinic_name.pack(pady=(0, 10))
