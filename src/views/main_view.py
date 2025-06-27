@@ -93,7 +93,7 @@ class MainView(ctk.CTkFrame):
         # 메뉴 아이콘과 함께
         leave_btn = ctk.CTkButton(
             sidebar_frame,
-            text="📋 연차 관리",
+            text="📊  연차 관리",
             command=lambda: self.show_view("leave_management"),
             width=180,
             height=40,
@@ -109,7 +109,7 @@ class MainView(ctk.CTkFrame):
         
         calendar_btn = ctk.CTkButton(
             sidebar_frame,
-            text="📅 달력 보기",
+            text="📅  휴무 일지",
             command=lambda: self.show_view("calendar"),
             width=180,
             height=40,
@@ -138,7 +138,7 @@ class MainView(ctk.CTkFrame):
             
             admin_overview_btn = ctk.CTkButton(
                 sidebar_frame,
-                text="👥 전체 연차 현황",
+                text="⚙️  전체 연차 현황",
                 command=lambda: self.show_view("admin_overview"),
                 width=180,
                 height=40,
@@ -154,7 +154,7 @@ class MainView(ctk.CTkFrame):
             
             employee_btn = ctk.CTkButton(
                 sidebar_frame,
-                text="👤 직원 관리",
+                text="📈  직원 관리",
                 command=lambda: self.show_view("employee_management"),
                 width=180,
                 height=40,
@@ -170,7 +170,7 @@ class MainView(ctk.CTkFrame):
             
             common_leave_btn = ctk.CTkButton(
                 sidebar_frame,
-                text="🗓️ 공통 연차 관리",
+                text="🏢  공통 연차 관리",
                 command=lambda: self.show_view("common_leave"),
                 width=180,
                 height=40,
@@ -190,7 +190,7 @@ class MainView(ctk.CTkFrame):
         
         stats_btn = ctk.CTkButton(
             sidebar_frame,
-            text="📊 통계",
+            text="📊  통계",
             command=lambda: self.show_view("statistics"),
             width=180,
             height=40,
