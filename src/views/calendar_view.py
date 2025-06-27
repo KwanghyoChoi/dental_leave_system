@@ -250,23 +250,33 @@ class CalendarView(ctk.CTkFrame):
     
     def get_common_leaves_for_month(self):
         try:
-            # 해당 직원에게 적용된 공통연차만 가져오기
-            if hasattr(self.db, 'get_employee_common_leaves'):
-                common_leaves = self.db.get_employee_common_leaves(
-                    self.session.get_user_id(), 
-                    self.current_date.year
-                )
-            else:
-                # 기존 방식: 모든 공통연차 가져온 후 필터링
+            # 관리자는 모든 공통연차를 볼 수 있도록 함
+            if self.session.is_admin():
+                # 관리자: 모든 공통연차 표시
                 all_common_leaves = self.db.get_common_leaves()
                 common_leaves = []
                 for leave in all_common_leaves:
-                    # 이 직원에게 적용되는지 확인
-                    employees = self.db.get_common_leave_employees(leave['id'])
-                    if any(emp['id'] == self.session.get_user_id() for emp in employees):
-                        start_year = datetime.strptime(leave['start_date'], '%Y-%m-%d').year
-                        if start_year == self.current_date.year:
-                            common_leaves.append(leave)
+                    start_year = datetime.strptime(leave['start_date'], '%Y-%m-%d').year
+                    if start_year == self.current_date.year:
+                        common_leaves.append(leave)
+            else:
+                # 일반 직원: 해당 직원에게 적용된 공통연차만 가져오기
+                if hasattr(self.db, 'get_employee_common_leaves'):
+                    common_leaves = self.db.get_employee_common_leaves(
+                        self.session.get_user_id(), 
+                        self.current_date.year
+                    )
+                else:
+                    # 기존 방식: 모든 공통연차 가져온 후 필터링
+                    all_common_leaves = self.db.get_common_leaves()
+                    common_leaves = []
+                    for leave in all_common_leaves:
+                        # 이 직원에게 적용되는지 확인
+                        employees = self.db.get_common_leave_employees(leave['id'])
+                        if any(emp['id'] == self.session.get_user_id() for emp in employees):
+                            start_year = datetime.strptime(leave['start_date'], '%Y-%m-%d').year
+                            if start_year == self.current_date.year:
+                                common_leaves.append(leave)
             
             result = {}
             for leave in common_leaves:
