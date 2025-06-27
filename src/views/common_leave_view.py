@@ -299,29 +299,34 @@ class CommonLeaveView(ctk.CTkFrame):
         existing_employees = self.db.get_common_leave_employees(common_leave_id)
         existing_emp_ids = [emp['id'] for emp in existing_employees]
         
-        # 수정 다이얼로그 창
+        # 수정 다이얼로그 창 (크기 증가)
         edit_window = ctk.CTkToplevel(self)
         edit_window.title("공통 연차 수정")
-        edit_window.geometry("600x500")
+        edit_window.geometry("700x650")
         edit_window.transient(self.winfo_toplevel())
         edit_window.grab_set()
+        edit_window.resizable(True, True)  # 크기 조절 가능하도록 설정
         
         # 중앙 배치
         edit_window.update_idletasks()
-        x = (edit_window.winfo_screenwidth() // 2) - (600 // 2)
-        y = (edit_window.winfo_screenheight() // 2) - (500 // 2)
-        edit_window.geometry(f"600x500+{x}+{y}")
+        x = (edit_window.winfo_screenwidth() // 2) - (700 // 2)
+        y = (edit_window.winfo_screenheight() // 2) - (650 // 2)
+        edit_window.geometry(f"700x650+{x}+{y}")
+        
+        # 메인 스크롤 가능한 프레임
+        main_scroll_frame = ctk.CTkScrollableFrame(edit_window, width=680, height=600)
+        main_scroll_frame.pack(fill="both", expand=True, padx=10, pady=10)
         
         # 제목
         title_label = ctk.CTkLabel(
-            edit_window,
+            main_scroll_frame,
             text="공통 연차 수정",
             font=ctk.CTkFont(size=18, weight="bold")
         )
-        title_label.pack(pady=(20, 10))
+        title_label.pack(pady=(10, 20))
         
         # 입력 필드
-        fields_frame = ctk.CTkFrame(edit_window)
+        fields_frame = ctk.CTkFrame(main_scroll_frame)
         fields_frame.pack(padx=20, pady=10, fill="x")
         
         # 연차명
@@ -382,12 +387,12 @@ class CommonLeaveView(ctk.CTkFrame):
         memo_entry.grid(row=5, column=1, padx=5, pady=5)
         
         # 직원 선택
-        emp_label = ctk.CTkLabel(edit_window, text="적용 직원:")
-        emp_label.pack(pady=(10, 5))
+        emp_label = ctk.CTkLabel(main_scroll_frame, text="적용 직원:")
+        emp_label.pack(pady=(20, 5))
         
-        # 스크롤 가능한 직원 목록
-        emp_scroll_frame = ctk.CTkScrollableFrame(edit_window, height=150)
-        emp_scroll_frame.pack(padx=20, pady=5, fill="x")
+        # 직원 목록 프레임 (체크박스들)
+        emp_frame = ctk.CTkFrame(main_scroll_frame)
+        emp_frame.pack(padx=20, pady=5, fill="x")
         
         employee_vars = {}
         employees = self.db.get_all_employees()
@@ -395,7 +400,7 @@ class CommonLeaveView(ctk.CTkFrame):
         for i, emp in enumerate(employees):
             var = ctk.BooleanVar(value=emp['id'] in existing_emp_ids)
             check = ctk.CTkCheckBox(
-                emp_scroll_frame,
+                emp_frame,
                 text=emp['name'],
                 variable=var
             )
@@ -403,8 +408,8 @@ class CommonLeaveView(ctk.CTkFrame):
             employee_vars[emp['id']] = var
         
         # 버튼 프레임
-        button_frame = ctk.CTkFrame(edit_window, fg_color="transparent")
-        button_frame.pack(pady=20)
+        button_frame = ctk.CTkFrame(main_scroll_frame, fg_color="transparent")
+        button_frame.pack(pady=30)
         
         def save_changes():
             try:

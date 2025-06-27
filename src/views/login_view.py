@@ -275,9 +275,18 @@ class EmployeeRegisterDialog:
         self.name_entry.pack(padx=10, pady=(0, 10))
         
         # 비밀번호
-        ctk.CTkLabel(required_frame, text="비밀번호 *").pack(anchor="w", padx=10, pady=(5, 5))
-        self.password_entry = ctk.CTkEntry(required_frame, width=300, show="*", placeholder_text="비밀번호를 입력하세요")
-        self.password_entry.pack(padx=10, pady=(0, 10))
+        ctk.CTkLabel(required_frame, text="비밀번호 * (4자 이상)", text_color=Theme.COLORS['text_primary']).pack(anchor="w", padx=10, pady=(5, 5))
+        self.password_entry = ctk.CTkEntry(required_frame, width=300, show="*", placeholder_text="4자 이상의 비밀번호를 입력하세요")
+        self.password_entry.pack(padx=10, pady=(0, 5))
+        
+        # 비밀번호 안내 문구
+        password_info = ctk.CTkLabel(
+            required_frame,
+            text="* 비밀번호는 최소 4자 이상이어야 합니다.",
+            font=ctk.CTkFont(size=11),
+            text_color="gray"
+        )
+        password_info.pack(anchor="w", padx=10, pady=(0, 10))
         
         # 비밀번호 확인
         ctk.CTkLabel(required_frame, text="비밀번호 확인 *").pack(anchor="w", padx=10, pady=(5, 5))
